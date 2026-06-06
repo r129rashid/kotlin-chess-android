@@ -26,26 +26,26 @@ import kotlinx.coroutines.withContext
 class GameActivity : AppCompatActivity(), com.rabi.chess.ui.BoardView.Listener {
 
     companion object {
-        const val EXTRA_MODE = "mode"
-        const val EXTRA_DIFFICULTY = "difficulty"
+        const val EXTRA_MODE        = "mode"
+        const val EXTRA_DIFFICULTY  = "difficulty"
         const val EXTRA_HUMAN_COLOR = "human_color"
-        const val MODE_TWO_PLAYER = "TWO_PLAYER"
-        const val MODE_COMPUTER = "COMPUTER"
-        private const val PREFS = "chess"
+        const val MODE_TWO_PLAYER   = "TWO_PLAYER"
+        const val MODE_COMPUTER     = "COMPUTER"
+        private const val PREFS     = "chess"
         private const val KEY_MUTED = "muted"
     }
 
     private lateinit var binding: ActivityGameBinding
-    private lateinit var sound: SoundManager
-    private lateinit var ads: AdManager
+    private lateinit var sound:   SoundManager
+    private lateinit var ads:     AdManager
 
-    private var board = Board.initial()
-    private var lastMove: Move? = null
-    private var gameOver = false
+    private var board       = Board.initial()
+    private var lastMove:   Move? = null
+    private var gameOver    = false
 
-    private var vsComputer = false
-    private var difficulty = Difficulty.MEDIUM
-    private var humanColor = PieceColor.WHITE
+    private var vsComputer  = false
+    private var difficulty  = Difficulty.MEDIUM
+    private var humanColor  = PieceColor.WHITE
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,22 +60,22 @@ class GameActivity : AppCompatActivity(), com.rabi.chess.ui.BoardView.Listener {
             PieceColor.valueOf(intent.getStringExtra(EXTRA_HUMAN_COLOR) ?: "WHITE")
         }.getOrDefault(PieceColor.WHITE)
 
-        sound = SoundManager(this)
+        sound      = SoundManager(this)
         sound.muted = getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(KEY_MUTED, false)
         updateMuteIcon()
 
         ads = AdManager(applicationContext)
         ads.initialize()
 
-        binding.boardView.listener = this
+        binding.boardView.listener    = this
         binding.boardView.whiteBottom = !(vsComputer && humanColor == PieceColor.BLACK)
 
-        binding.btnUndo.setOnClickListener { onUndo() }
-        binding.btnNewGame.setOnClickListener { startNewGameWithAd() }
-        binding.btnResign.setOnClickListener { onResign() }
+        binding.btnUndo.setOnClickListener      { onUndo() }
+        binding.btnNewGame.setOnClickListener   { startNewGameWithAd() }
+        binding.btnResign.setOnClickListener    { onResign() }
         binding.btnPlayAgain.setOnClickListener { startNewGameWithAd() }
-        binding.btnMenu.setOnClickListener { finish() }
-        binding.btnMute.setOnClickListener { toggleMute() }
+        binding.btnMenu.setOnClickListener      { finish() }
+        binding.btnMute.setOnClickListener      { toggleMute() }
 
         resetGame()
     }
@@ -83,7 +83,11 @@ class GameActivity : AppCompatActivity(), com.rabi.chess.ui.BoardView.Listener {
     // ---- Game flow --------------------------------------------------------
 
     private fun resetGame() {
-        board = Board.initial()
+        // Cancel any in-progress animations before resetting state
+        binding.pawnBattleView.cancel()
+        binding.boardView.cancelAnimations()
+
+        board    = Board.initial()
         lastMove = null
         gameOver = false
         binding.resultCard.visibility = View.GONE
@@ -109,32 +113,62 @@ class GameActivity : AppCompatActivity(), com.rabi.chess.ui.BoardView.Listener {
     }
 
     private fun commitMove(move: Move) {
-        val movingPiece = board.pieceAt(move.from) ?: return
-        val isCapture = board.pieceAt(move.to) != null || move.isEnPassant
+        val movingPiece   = board.pieceAt(move.from) ?: return
+
+        // Capture these BEFORE makeMove removes pieces from the board
+        val capturedPiece = board.pieceAt(move.to)
+        val isCapture     = capturedPiece != null || move.isEnPassant
+        // Pawn battle fires whenever a pawn takes a pawn (including en passant, always pawn-on-pawn)
+        val isPawnBattle  = movingPiece.type == PieceType.PAWN &&
+                            (capturedPiece?.type == PieceType.PAWN || move.isEnPassant)
+        val isPromotion   = move.promotion != null
 
         board.makeMove(move)
         lastMove = move
         binding.boardView.inputEnabled = false
 
-        val result = MoveGenerator.result(board)
+        val result         = MoveGenerator.result(board)
         val opponentInCheck = MoveGenerator.isInCheck(board, board.sideToMove)
 
-        // Choose and play the most significant cue at the moment of the move.
         val sfx = when {
-            result.isGameOver -> Sfx.GAME_OVER
-            opponentInCheck -> Sfx.CHECK
-            isCapture -> Sfx.CAPTURE
-            else -> Sfx.MOVE
+            result.isGameOver  -> Sfx.GAME_OVER
+            opponentInCheck    -> Sfx.CHECK
+            isCapture          -> Sfx.CAPTURE
+            else               -> Sfx.MOVE
         }
         sound.play(sfx)
 
         binding.boardView.animateMove(move, movingPiece) {
+            // After the piece glides, render the new position (queen appears, check shows, etc.)
             binding.boardView.render(board, lastMove)
             updateStatus()
-            when {
-                result.isGameOver -> showResult(result)
-                vsComputer && board.sideToMove != humanColor -> triggerAi()
-                else -> binding.boardView.inputEnabled = true
+
+            // --- Animation sequencing ---
+            // We compose: pawn-battle → promotion-glow → game-continue
+            // Each step only fires if the condition applies; otherwise skips to the next.
+
+            fun continueGame() {
+                when {
+                    result.isGameOver                              -> showResult(result)
+                    vsComputer && board.sideToMove != humanColor  -> triggerAi()
+                    else                                           -> binding.boardView.inputEnabled = true
+                }
+            }
+
+            fun afterPawnBattle() {
+                // Animation 3: promotion glow (only if this was also a promotion)
+                if (isPromotion) {
+                    binding.boardView.showPromotionGlow(move.to) { continueGame() }
+                } else {
+                    continueGame()
+                }
+            }
+
+            // Animation — pawn battle cutscene
+            if (isPawnBattle) {
+                binding.pawnBattleView.show(movingPiece.color) { afterPawnBattle() }
+            } else {
+                afterPawnBattle()
             }
         }
     }
@@ -156,16 +190,14 @@ class GameActivity : AppCompatActivity(), com.rabi.chess.ui.BoardView.Listener {
 
     private fun onUndo() {
         if (binding.progressThinking.visibility == View.VISIBLE) return
-        // Undo a full ply pair vs the computer so it stays the human's turn.
         val plies = if (vsComputer) 2 else 1
         var undone = 0
-        repeat(plies) {
-            if (board.moveCount > 0) { board.undoMove(); undone++ }
-        }
+        repeat(plies) { if (board.moveCount > 0) { board.undoMove(); undone++ } }
         if (undone == 0) return
         gameOver = false
         binding.resultCard.visibility = View.GONE
         lastMove = null
+        binding.boardView.cancelAnimations()
         binding.boardView.render(board, null)
         updateStatus()
         binding.boardView.inputEnabled = true
@@ -174,24 +206,30 @@ class GameActivity : AppCompatActivity(), com.rabi.chess.ui.BoardView.Listener {
     private fun onResign() {
         if (gameOver) return
         val loser = board.sideToMove
-        gameOver = true
+        gameOver  = true
         binding.boardView.inputEnabled = false
         sound.play(Sfx.GAME_OVER)
         val msg = if (vsComputer) {
             if (loser == humanColor) getString(R.string.you_lose) else getString(R.string.you_win)
         } else {
-            if (loser == PieceColor.WHITE) getString(R.string.black_wins)
-            else getString(R.string.white_wins)
+            if (loser == PieceColor.WHITE) getString(R.string.black_wins) else getString(R.string.white_wins)
         }
-        binding.tvResult.text = msg
-        binding.resultCard.visibility = View.VISIBLE
+        binding.tvResult.text           = msg
+        binding.resultCard.visibility   = View.VISIBLE
     }
 
     private fun showResult(result: GameResult) {
         gameOver = true
         binding.boardView.inputEnabled = false
         binding.tvResult.text = resultText(result)
-        binding.resultCard.visibility = View.VISIBLE
+        // Animation 4: checkmate curtain — king tips, dark drape falls, then card appears
+        if (result == GameResult.CHECKMATE) {
+            binding.boardView.playCheckmateCurtain {
+                binding.resultCard.visibility = View.VISIBLE
+            }
+        } else {
+            binding.resultCard.visibility = View.VISIBLE
+        }
     }
 
     private fun resultText(result: GameResult): String = when (result) {
@@ -200,27 +238,25 @@ class GameActivity : AppCompatActivity(), com.rabi.chess.ui.BoardView.Listener {
             if (vsComputer) {
                 if (winner == humanColor) getString(R.string.you_win) else getString(R.string.you_lose)
             } else {
-                if (winner == PieceColor.WHITE) getString(R.string.white_wins)
-                else getString(R.string.black_wins)
+                if (winner == PieceColor.WHITE) getString(R.string.white_wins) else getString(R.string.black_wins)
             }
         }
-        GameResult.STALEMATE -> getString(R.string.stalemate)
-        GameResult.DRAW_FIFTY_MOVE -> getString(R.string.draw_fifty)
+        GameResult.STALEMATE             -> getString(R.string.stalemate)
+        GameResult.DRAW_FIFTY_MOVE       -> getString(R.string.draw_fifty)
         GameResult.DRAW_INSUFFICIENT_MATERIAL -> getString(R.string.draw_material)
-        GameResult.ONGOING -> ""
+        GameResult.ONGOING               -> ""
     }
 
     private fun startNewGameWithAd() {
-        // Interstitial (throttled) shows between games, then we reset.
         ads.onGameOver(this) { resetGame() }
     }
 
     private fun updateStatus() {
         if (gameOver) return
-        val base = if (board.sideToMove == PieceColor.WHITE)
-            getString(R.string.white_to_move) else getString(R.string.black_to_move)
+        val base  = if (board.sideToMove == PieceColor.WHITE) getString(R.string.white_to_move)
+                    else getString(R.string.black_to_move)
         val check = if (MoveGenerator.isInCheck(board, board.sideToMove))
-            "  ·  ${getString(R.string.in_check)}" else ""
+                    "  ·  ${getString(R.string.in_check)}" else ""
         binding.tvStatus.text = base + check
     }
 
@@ -233,7 +269,7 @@ class GameActivity : AppCompatActivity(), com.rabi.chess.ui.BoardView.Listener {
 
     private fun updateMuteIcon() {
         val res = if (sound.muted) android.R.drawable.ic_lock_silent_mode
-        else android.R.drawable.ic_lock_silent_mode_off
+                  else android.R.drawable.ic_lock_silent_mode_off
         binding.btnMute.setIconResource(res)
     }
 
