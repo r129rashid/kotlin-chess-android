@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand / surface palette -->
+    <color name="bg">#FF14110F</color>
+    <color name="surface">#FF211E1A</color>
+    <color name="surface_variant">#FF2E2A24</color>
+    <color name="on_surface">#FFF3EFE6</color>
+    <color name="on_surface_muted">#FFB8B0A0</color>
+    <color name="accent">#FFD9A441</color>
+    <color name="accent_dark">#FFB07E22</color>
+
+    <!-- Board -->
+    <color name="board_light">#FFEBECD0</color>
+    <color name="board_dark">#FF739552</color>
+    <color name="board_border">#FF3A4A2C</color>
+
+    <!-- Highlights -->
+    <color name="hl_selected">#A6F2D16B</color>
+    <color name="hl_legal">#73000000</color>
+    <color name="hl_lastmove">#80F2D16B</color>
+    <color name="hl_check">#B3E04848</color>
+
+    <!-- Pieces — pure black and white, hairline border provides contrast on same-color squares -->
+    <color name="piece_white">#FFF9F9F7</color>
+    <color name="piece_white_outline">#FF000000</color>
+    <color name="piece_black">#FF111111</color>
+    <color name="piece_black_outline">#FFF9F9F7</color>
+</resources>

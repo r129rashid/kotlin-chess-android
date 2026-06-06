@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Kotlin Chess</string>
+
+    <string name="tagline">Classic chess. Two ways to play.</string>
+    <string name="play_two_player">Two Players</string>
+    <string name="play_two_player_sub">Pass-and-play on one device</string>
+    <string name="play_computer">Play the Computer</string>
+    <string name="play_computer_sub">Choose your difficulty</string>
+
+    <string name="difficulty">Difficulty</string>
+    <string name="easy">Easy</string>
+    <string name="medium">Medium</string>
+    <string name="hard">Hard</string>
+
+    <string name="play_as">Play as</string>
+    <string name="white">White</string>
+    <string name="black">Black</string>
+
+    <string name="start_game">Start Game</string>
+    <string name="new_game">New Game</string>
+    <string name="undo">Undo</string>
+    <string name="resign">Resign</string>
+    <string name="sound_on">Sound on</string>
+    <string name="sound_off">Sound off</string>
+
+    <string name="white_to_move">White to move</string>
+    <string name="black_to_move">Black to move</string>
+    <string name="in_check">Check!</string>
+    <string name="thinking">Computer is thinking…</string>
+
+    <string name="white_wins">White wins by checkmate</string>
+    <string name="black_wins">Black wins by checkmate</string>
+    <string name="stalemate">Draw — stalemate</string>
+    <string name="draw_fifty">Draw — fifty-move rule</string>
+    <string name="draw_material">Draw — insufficient material</string>
+    <string name="you_win">You win!</string>
+    <string name="you_lose">You lose</string>
+
+    <string name="promote_title">Promote pawn to</string>
+    <string name="queen">Queen</string>
+    <string name="rook">Rook</string>
+    <string name="bishop">Bishop</string>
+    <string name="knight">Knight</string>
+
+    <string name="play_again">Play Again</string>
+    <string name="back_to_menu">Main Menu</string>
+</resources>

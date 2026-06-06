@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Stylized chess king centered within the 72dp safe zone -->
+    <group android:scaleX="1.0" android:scaleY="1.0">
+        <!-- cross on top -->
+        <path android:fillColor="#D9A441" android:pathData="M51,26h6v6h6v6h-6v8h-6v-8h-6v-6h6z" />
+        <!-- crown / head -->
+        <path android:fillColor="#F3EFE6"
+            android:pathData="M54,46c10,0 17,7 17,16c0,5 -2,9 -6,12l3,4h-28l3,-4c-4,-3 -6,-7 -6,-12c0,-9 7,-16 17,-16z" />
+        <!-- body -->
+        <path android:fillColor="#F3EFE6"
+            android:pathData="M40,80h28l4,8c-6,3 -12,4 -18,4c-6,0 -12,-1 -18,-4z" />
+        <!-- base -->
+        <path android:fillColor="#D9A441"
+            android:pathData="M34,90c6,3 13,4 20,4c7,0 14,-1 20,-4l-2,8h-36z" />
+    </group>
+</vector>
