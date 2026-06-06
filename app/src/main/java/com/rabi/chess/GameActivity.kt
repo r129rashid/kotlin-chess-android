@@ -118,9 +118,9 @@ class GameActivity : AppCompatActivity(), com.rabi.chess.ui.BoardView.Listener {
         // Capture these BEFORE makeMove removes pieces from the board
         val capturedPiece = board.pieceAt(move.to)
         val isCapture     = capturedPiece != null || move.isEnPassant
-        // Pawn battle fires whenever a pawn takes a pawn (including en passant, always pawn-on-pawn)
-        val isPawnBattle  = movingPiece.type == PieceType.PAWN &&
-                            (capturedPiece?.type == PieceType.PAWN || move.isEnPassant)
+        // Battle animation fires on ANY capture; en passant always kills a pawn
+        val capturedType  = capturedPiece?.type ?: if (move.isEnPassant) PieceType.PAWN else null
+        val isBattleCapture = capturedType != null
         val isPromotion   = move.promotion != null
 
         board.makeMove(move)
@@ -164,9 +164,9 @@ class GameActivity : AppCompatActivity(), com.rabi.chess.ui.BoardView.Listener {
                 }
             }
 
-            // Animation — pawn battle cutscene
-            if (isPawnBattle) {
-                binding.pawnBattleView.show(movingPiece.color) { afterPawnBattle() }
+            // Animation — warrior battle cutscene (fires on every capture)
+            if (capturedType != null) {
+                binding.pawnBattleView.show(movingPiece.type, movingPiece.color, capturedType) { afterPawnBattle() }
             } else {
                 afterPawnBattle()
             }
